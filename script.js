@@ -1,63 +1,50 @@
 const form = document.querySelector("form");
 
 
-async function getWeather(encodedCity, encodedCountry, celcius, ferhenhite) {
+async function getWeather(encodedCity, encodedCountry) {
     try {
         const response = await fetch (`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodedCity},${encodedCountry}?unitGroup=metric`)
+        if (!response.ok){
+            throw new Error("Error")
+        }
         const weatherData = await response.json();
-        celcius.textContent = `Current temperature of ${encodedCity + ", "+ encodedCountry} is: ` + weatherData.currentConditions.temp+'\u00B0C'; 
-        const conversion = (weatherData.currentConditions.temp * 1.8) + 32;
-        ferhenhite.textContent = `Current temperature of ${encodedCity + ", "+ encodedCountry} is: ` + conversion+'\u00B0F';
-        console.log(weatherData);
+        return {data:weatherData, errors:false}
     } catch(error) {
-        console.log(error);
-        celcius.textContent = error;
+        return {data:error, errors:true};
     }
 }
 
-form.addEventListener("submit", (e) => {
+function renderError(data, weatherDisplay){
+    weatherDisplay.textContent = data;
+}
+
+function renderWeather(data, weatherDisplay){
+    weatherDisplay.textContent = `The Weather is ${data.cel}(${data.fer})`
+}
+
+function processWeather(data){
+    const tempCel = data.currentConditions.temp;
+    const tempFer = (tempCel*1.8)+32;
+    return {cel: tempCel+"\u00B0C", fer: tempFer+"\u00B0F"}
+}
+
+form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const city = document.querySelector("#city").value;
     const country = document.querySelector("#country").value;
-    const celcius = document.querySelector("#celcius");
-    const ferhenhite = document.querySelector("#ferhenhite");
+    const weatherDisplay = document.querySelector("#weatherDisplay");
 
     const encodedCountry = encodeURIComponent(country);
     const encodedCity = encodeURIComponent(city);
 
 
-    getWeather(encodedCity, encodedCountry, celcius, ferhenhite);
+    const {data, errors} = await getWeather(encodedCity, encodedCountry);
 
-    // fetch (`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodedCity},${encodedCountry}?unitGroup=metric`)
-    // .then(function(response) {
-    //     if(!response.ok){
-    //         throw new Error("Error")
-    //     }
-    //     return response.json();
-    // })
-    // .then(function(datas){
-    //     celcius.textContent = `Current temperature of ${city + ", "+ country} is: ` + datas.currentConditions.temp+'\u00B0C';
-    //     const conversion = (datas.currentConditions.temp * 1.8) + 32;
-    //     ferhenhite.textContent = `Current temperature of ${city + ", "+ country} is: ` + conversion+'\u00B0F'
-    // }).catch((err) => console.log(err));
-    
-})
-
-/*
-
-<script>
-  const img = document.querySelector('img');
-
-  async function getCats() {
-    try {
-      const response = await fetch('https://api.giphy.com/v1/gifs/random?api_key=YOUR_KEY_HERE&tag=cats');
-      const catData = await response.json();
-      img.src = catData.data.images.original.url;
-    } catch (error) {
-      console.error(error);
+    if(errors){
+        renderError(data, weatherDisplay);
+    }else {
+        const weather = processWeather(data);
+        renderWeather(weather, weatherDisplay);
     }
-  }
-</script>
-
-*/
+})
